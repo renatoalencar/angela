@@ -2,6 +2,19 @@
 module Hash = Mirage_crypto.Hash.SHA256
 module MerkleTree = Merkle.Make(Hash)
 
+let test_with_empty_tx () =
+  let tree = MerkleTree.compute [] in
+  let root = Option.map Cstruct.to_string @@ MerkleTree.root tree in
+
+  Alcotest.(check (option string)) "Should be None" root None
+
+let test_with_single_tx () =
+  let tree = MerkleTree.compute [ Cstruct.of_hex "09438be5471f6b8fe1eb0bb79d597ccce4c6d6447b2b525e0361e05055276c53" ] in
+  let root = Option.map Cstruct.to_string @@ MerkleTree.root tree in
+
+  Alcotest.(check (option string)) "Should be the same"
+    root (Some "\tC\139\229G\031k\143\225\235\011\183\157Y|\204\228\198\214D{+R^\003a\224PU'lS")
+
 let test_with_txs ~root txs =
   let correct_root = Cstruct.of_hex root in
   let txs = List.map Cstruct.of_hex txs in
@@ -10,9 +23,12 @@ let test_with_txs ~root txs =
   let proofs = List.filter_map (MerkleTree.find_proof tree) txs in
   let root = Option.get @@ MerkleTree.root tree in
 
-  Alcotest.(check string) "Should correctly compute the merkle root" (Cstruct.to_string root) (Cstruct.to_string correct_root);
-  Alcotest.(check int) "Should have all the proofs" (List.length proofs) (List.length txs);
-  Alcotest.(check bool) "Should verify the merkle path" (List.for_all (MerkleTree.verify_path root) proofs) true
+  Alcotest.(check string) "Should correctly compute the merkle root"
+    (Cstruct.to_string root) (Cstruct.to_string correct_root);
+  Alcotest.(check int) "Should have all the proofs"
+    (List.length proofs) (List.length txs);
+  Alcotest.(check bool) "Should verify the merkle path"
+    (List.for_all (MerkleTree.verify_path root) proofs) true
 
 let test_tree_with_power_of_2_tx_count () =
   test_with_txs ~root:"48577decdc11118731ba68839f179378d9b5fb186dc2ae41bebea0f26e5283e3"
@@ -54,63 +70,48 @@ let test_tree_with_odd_tx_count () =
     ; "d69622ad699771f04b7f4626790bfcec555567f8d8e52f709094ab44235aa5bf"
     ; "ada57acbca80bcb7c13ca16419d3c11ed3b96391ed4c428dd6df0ff9ffadb8f0" ]
 
-(* TODO: Use a better structure in order to make generative testing.
-   QCheck seems promising. *)
-
-let test_with_txs_count count =
-  let generate_string () =
-    let size = 10 in
-    let arr = Array.make size 0 in
-    for i = 0 to size - 1 do
-      arr.(i) <- Random.bits () land 0xff
-    done;
-    arr
-    |> Array.map Char.chr
-    |> Array.to_seq
-    |> String.of_seq
-  in
-
-  let txs = Array.make count "" in
-  Array.iteri (fun i _ -> txs.(i) <- generate_string ()) txs;
-
-  let txs = List.map (fun s -> Hash.digest (Cstruct.of_string s)) (Array.to_list txs) in
+let test_with_txs_count txs =
+  let txs = List.map (fun s -> Hash.digest (Cstruct.of_string s)) txs in
 
   let tree = MerkleTree.compute txs in
   let proofs = List.filter_map (MerkleTree.find_proof tree) txs in
   let root = Option.get @@ MerkleTree.root tree in
 
-  Alcotest.(check int) "Should have all the proofs" (List.length proofs) (List.length txs);
-  Alcotest.(check bool) "Should verify the merkle path" (List.for_all (MerkleTree.verify_path root) proofs) true
-        
-let test_generative iterations () =
-  Random.self_init ();
+  List.length proofs = List.length txs
+  && List.for_all (MerkleTree.verify_path root) proofs
 
-  let iteration () =
-    let count = Random.bits () mod 500 in
-    if count > 0 then (
-      try
-        test_with_txs_count count
-      with exn -> (
-        Printf.printf "Failed with %d hashes\n" count;
-        raise exn
-      )
-    )
-  in
+module StringSet = Set.Make(String)
 
-  for _ = 0 to iterations do
-    iteration ()
-  done
+let only_unique_values l =
+  StringSet.(cardinal (of_list l)) = List.length l
+
+let test_generative count =
+  QCheck.Test.make ~count ~name:"Random digest lists"
+    (* Sometimes it fails because it generates two empty strings which have the
+       same hash *)
+    QCheck.(list_of_size Gen.(1 -- 256) @@ string_of_size Gen.(1 -- 256))
+    (fun l ->
+      QCheck.assume (only_unique_values l);
+      test_with_txs_count l)
 
 let () =
   let open Alcotest in
+  let generative_tests =
+    QCheck_alcotest.to_alcotest (test_generative 600)
+  in
   run "Merkle" [
-      "Tree", [ test_case "Test with 2^3 hashes"
-                  `Quick test_tree_with_power_of_2_tx_count
-              ; test_case "Test with 2^3 - 2 (should have 1 duplication)"
-                  `Quick test_tree_with_even_tx_count
-              ; test_case "Test with 2^4 + 1 (should have several duplications)"
-                  `Quick test_tree_with_odd_tx_count
-              ; test_case "Test with random amount of hashes"
-                  `Slow (test_generative 200) ]
+      "Base cases", [ test_case "Test with empty list"
+                        `Quick test_with_empty_tx
+                    ; test_case "Test with single hash"
+                        `Quick test_with_single_tx ]
+
+    ; "Larger cases", [ test_case "Test with 2^3 hashes"
+                          `Quick test_tree_with_power_of_2_tx_count
+                      ; test_case "Test with 2^3 - 2 (should have 1 duplication)"
+                          `Quick test_tree_with_even_tx_count
+                      ; test_case "Test with 2^4 + 1 (should have several duplications)"
+                          `Quick test_tree_with_odd_tx_count ]
+
+    ; "Generative", [ generative_tests ]
     ]
-  
+
