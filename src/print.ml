@@ -8,7 +8,8 @@ let pp_digest fmt digest =
     (fun c -> fprintf fmt "%x" (Char.code c))
     digest
 
-let pp_path fmt path =
+let pp_path ?fmt path =
+  let fmt = Option.value ~default:Format.std_formatter fmt in
   let print_node label digest =
     pp_open_hbox fmt ();
     pp_print_string fmt label;
@@ -65,7 +66,8 @@ let rec pp_print_tree ?indent fmt node =
   | Empty ->
      pp_print_string fmt "Empty node"
 
-let pp_tree fmt node =
+let pp_tree ?fmt node =
+  let fmt = Option.value ~default:Format.std_formatter fmt in
   pp_open_vbox fmt 0;
   pp_print_tree fmt node;
   pp_print_break fmt 2 0;

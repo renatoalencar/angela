@@ -20,9 +20,9 @@ module Tree : sig
 end
 
 module Print : sig
-  val pp_path : Format.formatter -> Tree.path -> unit
+  val pp_path : ?fmt:Format.formatter -> Tree.path -> unit
 
-  val pp_tree : Format.formatter -> Tree.t -> unit
+  val pp_tree : ?fmt:Format.formatter -> Tree.t -> unit
 end
 
 module Make (H: Mirage_crypto.Hash.S) : sig

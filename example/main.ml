@@ -13,5 +13,5 @@ let digests = List.map (fun s -> SHA256.digest (Cstruct.of_string s)) txs
 let () =
   let tree = MerkleTree.compute digests in
   let proof = MerkleTree.find_proof tree (List.hd digests) in
-  Merkle.Print.pp_tree Format.std_formatter tree;
-  Option.iter (Merkle.Print.pp_path Format.std_formatter) proof
+  Merkle.Print.pp_tree tree;
+  Option.iter Merkle.Print.pp_path proof
