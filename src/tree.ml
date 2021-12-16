@@ -1,6 +1,8 @@
 type digest = Cstruct.t
 
-type t = Empty | Leaf of digest | Node of (digest * t * t)
+type t = | Empty
+         | Leaf of digest
+         | Node of (digest * t * t)
 
 type path = | Left of (digest * path)
             | Right of (digest * path)
