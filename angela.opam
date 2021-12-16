@@ -1,0 +1,24 @@
+opam-version: "2.0"
+name: "angela"
+version: "0.1"
+synopsis: "A Merkle tree library in OCaml"
+description: """
+A Merkle tree library that's plugable with mirage-crypto
+and cstruct.
+"""
+maintainer: "Renato Alencar <renatoalencar.73@gmail.com>"
+authors: "Renato Alencar <renatoalencar.73@gmail.com>"
+license: "MIT"
+homepage: "https://github.com/renatoalencar/angela"
+bug-reports: "https://github.com/renatoalencar/angela/issuesn"
+dev-repo: "git+https://github.com/renatoalencar/angela"
+depends: [
+  "ocaml"
+  "mirage-crypto"
+  "cstruct"
+  "alcotest" {with-test}
+  "qcheck" {with-test}
+  "qcheck-alcotest" {with-test}
+]
+build: [ "dune" "build" "-p" name "-j" jobs ]
+install: [make "install"]
