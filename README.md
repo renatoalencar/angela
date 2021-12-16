@@ -30,10 +30,11 @@ Merkle.Tree.Node
 ### Computing the tree
 
 ```ocaml
-# let txs = List.map Cstruct.of_hex [ "9884e663d3024748c2930d1eb276598e1e05a6ce3dcf7c7a959e04bb5b937767"
-                                    ; "7bf8c23d17f1f1c0fdfb1e797057acb4bde3d9096d9830be47647a708b0371f9"
-                                    ; "8d0160c0d84236dda89711eb07586e3d95b186fed727103aabf3fa7cda07d65f"
-                                    ; "2c0a56c6ca0d14ca8ad7968cc1774fb24637072ce48928b76e0e754833d636f5" ];;
+# let txs = List.map Cstruct.of_hex
+    [ "9884e663d3024748c2930d1eb276598e1e05a6ce3dcf7c7a959e04bb5b937767"
+    ; "7bf8c23d17f1f1c0fdfb1e797057acb4bde3d9096d9830be47647a708b0371f9"
+    ; "8d0160c0d84236dda89711eb07586e3d95b186fed727103aabf3fa7cda07d65f"
+    ; "2c0a56c6ca0d14ca8ad7968cc1774fb24637072ce48928b76e0e754833d636f5" ] ;;
 val txs : Cstruct.t list =
   [{Cstruct.buffer = <abstr>; off = 0; len = 32};
    {Cstruct.buffer = <abstr>; off = 0; len = 32};
@@ -61,7 +62,8 @@ val root : Cstruct.t option =
 ### Finding a Merkle path for a particular hash
 
 ```ocaml
-# let path = MerkleTree.find_proof tree (Cstruct.of_hex "8d0160c0d84236dda89711eb07586e3d95b186fed727103aabf3fa7cda07d65f") ;;
+# let path = MerkleTree.find_proof tree
+    (Cstruct.of_hex "8d0160c0d84236dda89711eb07586e3d95b186fed727103aabf3fa7cda07d65f") ;;
 val path : Merkle.Tree.path option =
   Some
    (Merkle.Tree.Left
