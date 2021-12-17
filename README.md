@@ -117,7 +117,7 @@ val path : MerkleTree.path option =
 
 A tree
 ```ocaml
-# Merkle.Print.pp_tree Format.std_formatter tree ;;
+# MerkleTree.Print.pp_tree tree ;;
 Node digest
 23f4662aba9c097357f1b8a22aa1ebf8d658b37
 
@@ -150,7 +150,7 @@ Node digest
 
 A path
 ```ocaml
-# Option.iter (Merkle.Print.pp_path Format.std_formatter) path ;;
+# Option.iter MerkleTree.Print.pp_path path ;;
 Left a4ee24c67d6aac10ac3a7734b45f7651ae8158
 Right 2ca56c6cad14ca8ad7968cc1774fb2463772ce48928b76ee754833d636f5
 Bottom 8d160c0d84236dda89711eb7586e3d95b186fed727103aabf3fa7cda7d65f
