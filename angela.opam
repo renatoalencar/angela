@@ -21,4 +21,3 @@ depends: [
   "qcheck-alcotest" {with-test}
 ]
 build: [ "dune" "build" "-p" name "-j" jobs ]
-install: [make "install"]

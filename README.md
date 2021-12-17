@@ -11,18 +11,48 @@ and compute the tree from a list of digests as `Cstruct.t`s.
 # module MerkleTree = Merkle.Make(Mirage_crypto.Hash.SHA256) ;;
 module MerkleTree :
   sig
-    type t = Merkle.Tree.t
-    val root : t -> Cstruct.t option
-    val find_proof : t -> Cstruct.t -> Merkle.Tree.path option
-    val verify_path : Cstruct.t -> Merkle.Tree.path -> bool
-    val compute : Cstruct.t list -> t
+    type digest = Cstruct.t
+    type 'a node = 'a Merkle.Make(Mirage_crypto.Hash.SHA256).node
+    type 'a duplicate_node =
+        'a Merkle.Make(Mirage_crypto.Hash.SHA256).duplicate_node
+    type t =
+      Merkle.Make(Mirage_crypto.Hash.SHA256).t =
+        Empty
+      | Leaf of digest
+      | Node of t node
+      | DuplicateNode of t duplicate_node
+    type path =
+      Merkle.Make(Mirage_crypto.Hash.SHA256).path =
+        Left of (digest * path)
+      | Right of (digest * path)
+      | Bottom of digest
+    val empty : t
+    val is_empty : t -> bool
+    val leaf : digest -> t
+    val node : digest -> t -> t -> t
+    val root : t -> digest option
+    val height : t -> int
+    val length : t -> int
+    val find_proof : t -> digest -> path option
+    val verify_path : digest -> path -> bool
+    val digest : t -> digest option
+    val digest_exn : t -> digest
+    val compute : digest list -> t
+    val add : t -> digest -> t
+    val mem : digest -> t -> bool
+    val fold : ('a -> t -> 'a) -> 'a -> t -> 'a
+    val exists : (t -> bool) -> t -> bool
+    val for_all : (t -> bool) -> t -> bool
+    module Print :
+      sig
+        val pp_path : ?fmt:Format.formatter -> path -> unit
+        val pp_tree : ?fmt:Format.formatter -> t -> unit
+      end
   end
 
 # let tree = MerkleTree.compute digests ;;
 - : MerkleTree.t =
-Merkle.Tree.Node
- ({Cstruct.buffer = <abstr>; off = 0; len = 32},
- ...
+
 ```
 
 ## Examples
@@ -42,21 +72,20 @@ val txs : Cstruct.t list =
    {Cstruct.buffer = <abstr>; off = 0; len = 32}]
                                     
 # let tree = MerkleTree.compute txs ;;
-val tree : MerkleTree.t =
-  Merkle.Tree.Node
-   ({Cstruct.buffer = <abstr>; off = 0; len = 20},
-    Merkle.Tree.Node
-     ({Cstruct.buffer = <abstr>; off = 0; len = 20},
-      Merkle.Tree.Leaf {Cstruct.buffer = <abstr>; off = 0; len = 32},
-      Merkle.Tree.Leaf {Cstruct.buffer = <abstr>; off = 0; len = 32}),
-    Merkle.Tree.Node
-     ({Cstruct.buffer = <abstr>; off = 0; len = 20},
-      Merkle.Tree.Leaf {Cstruct.buffer = <abstr>; off = 0; len = 32},
-      Merkle.Tree.Leaf {Cstruct.buffer = <abstr>; off = 0; len = 32}))
+val tree : MerkleTree.t = MerkleTree.Node <abstr>
 
 # let root = MerkleTree.root tree ;;
-val root : Cstruct.t option =
-  Some {Cstruct.buffer = <abstr>; off = 0; len = 20}
+val root : MerkleTree.digest option =
+  Some {Cstruct.buffer = <abstr>; off = 0; len = 32}
+
+```
+
+### Computing from a fold
+
+```
+# let val tree : MerkleTree.t = MerkleTree.Node <abstr>
+val tree = List.fold_left MerkleTree.add MerkleTree.empty txs ;;
+
 ```
 
 ### Finding a Merkle path for a particular hash
@@ -64,7 +93,7 @@ val root : Cstruct.t option =
 ```ocaml
 # let path = MerkleTree.find_proof tree
     (Cstruct.of_hex "8d0160c0d84236dda89711eb07586e3d95b186fed727103aabf3fa7cda07d65f") ;;
-val path : Merkle.Tree.path option =
+val path : MerkleTree.path option =
   Some
    (Merkle.Tree.Left
      ({Cstruct.buffer = <abstr>; off = 0; len = 20},
