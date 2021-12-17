@@ -1,17 +1,8 @@
 
-module Tree = Tree
-module Print = Print
-
 module Make (H: Mirage_crypto.Hash.S) = struct
-  open Tree
+  module Print = Print
 
-  type t = Tree.t
-
-  let root = root
-
-  let length = length
-
-  let height = height
+  include Tree
 
   let hash_pair a b =
     H.get (H.feed (H.feed H.empty a) b)
@@ -140,5 +131,11 @@ module Make (H: Mirage_crypto.Hash.S) = struct
 
        Tree.duplicate_node (hash_pair digest digest) node
 
+  let rec mem digest t =
+    match t with
+    | Empty -> false
+    | Leaf leaf -> leaf = digest
+    | Node { left; right; _ } -> mem digest left || mem digest right
+    | DuplicateNode { node; _ } -> mem digest node
 end
 

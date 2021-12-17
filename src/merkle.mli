@@ -1,5 +1,5 @@
 
-module Tree : sig
+module Make (H: Mirage_crypto.Hash.S) : sig
   type digest = Cstruct.t
 
   type t = | Empty
@@ -25,28 +25,25 @@ module Tree : sig
   val node : digest -> t -> t -> t
 
   val root : t -> digest option
-end
-
-module Print : sig
-  val pp_path : ?fmt:Format.formatter -> Tree.path -> unit
-
-  val pp_tree : ?fmt:Format.formatter -> Tree.t -> unit
-end
-
-module Make (H: Mirage_crypto.Hash.S) : sig
-  type t = Tree.t
-
-  val root : t -> Tree.digest option
 
   val height : t -> int
 
   val length : t -> int
 
-  val find_proof : t -> Tree.digest -> Tree.path option
+  val find_proof : t -> digest -> path option
 
-  val verify_path : Tree.digest -> Tree.path -> bool
+  val verify_path : digest -> path -> bool
 
-  val compute : Tree.digest list -> t
+  val compute : digest list -> t
 
-  val add : t -> Tree.digest -> t
+  val add : t -> digest -> t
+
+  val mem : digest -> t -> bool
+
+  module Print : sig
+    val pp_path : ?fmt:Format.formatter -> path -> unit
+
+    val pp_tree : ?fmt:Format.formatter -> t -> unit
+  end
 end
+

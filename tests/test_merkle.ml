@@ -80,7 +80,7 @@ let test_tree_with_odd_tx_count () =
 
 let test_add_with_empty () =
   let digest = (Cstruct.of_hex "cce45eb5db95ace6ff1adde485f3315dc6cb1a5fdb700045cd45eab5075bb542") in
-  let tree = MerkleTree.add Merkle.Tree.empty digest in
+  let tree = MerkleTree.add MerkleTree.empty digest in
   let root = Option.get @@ MerkleTree.root tree in
 
   Alcotest.(check string) "Should have the same digest"
@@ -89,7 +89,7 @@ let test_add_with_empty () =
 let test_add_with_leaf () =
   let digest = (Cstruct.of_hex "cce45eb5db95ace6ff1adde485f3315dc6cb1a5fdb700045cd45eab5075bb542") in
   let leaf = (Cstruct.of_hex "0727c505cd8ef35bc0c7cb1533f30938a810ab09fd62d4acc3fe24633e3a2890") in
-  let tree = MerkleTree.add (Merkle.Tree.leaf leaf) digest in
+  let tree = MerkleTree.add (MerkleTree.leaf leaf) digest in
   let root = Option.get @@ MerkleTree.root tree in
 
   let expected_root = Cstruct.of_hex "996c1d54f4dc1384a4f76ffc5e1e5ad836a08b18e15491d2a18f533c96361643" in
@@ -114,13 +114,13 @@ let test_with_a_duplicate_node () =
             ; Cstruct.of_hex "cce45eb5db95ace6ff1adde485f3315dc6cb1a5fdb700045cd45eab5075bb542" 
             ; Cstruct.of_hex "8f355d90eec8252f1ba06df7ca45a82553398efcac93692961e2109b4f57ace8" ] in
   let tree = MerkleTree.compute txs in
-  Merkle.Print.pp_tree tree;
+  MerkleTree.Print.pp_tree tree;
 
 
   let tree = MerkleTree.add tree (Cstruct.of_hex "082370901631ec96525c04e3ecf985cecefe5b34788db9d36b00870a2ad6ed4b") in
   let root = Option.get @@ MerkleTree.root tree in
 
-  Merkle.Print.pp_tree tree;
+  MerkleTree.Print.pp_tree tree;
 
   let expected_root = Cstruct.of_hex "5c7cae1836aa614ef9251cc9132384e1f6bc000a197bff6e9678f3a8f8a5ea7e" in
 
@@ -139,15 +139,19 @@ let test_with_txs txs =
   && List.length txs = MerkleTree.length tree
   && log2 (List.length txs) = MerkleTree.height tree
 
-let test_add_with_txs txs =
+let test_add_with_txs txs idx =
   let txs = List.map (fun s -> Hash.digest (Cstruct.of_string s)) txs in
 
   let computed_tree = MerkleTree.compute txs in
-  let folded_tree = List.fold_left MerkleTree.add Merkle.Tree.empty txs in
+  let folded_tree = List.fold_left MerkleTree.add MerkleTree.empty txs in
   let computed_root = Option.map Cstruct.to_string @@ MerkleTree.root computed_tree in
   let folded_root = Option.map Cstruct.to_string @@ MerkleTree.root folded_tree in
 
+  let item_to_verify = List.nth txs idx in
+
   computed_root = folded_root
+  && MerkleTree.mem item_to_verify computed_tree
+  && MerkleTree.mem item_to_verify folded_tree
 
 module StringSet = Set.Make(String)
 
@@ -168,11 +172,11 @@ let test_add_generative count =
   QCheck.Test.make ~count ~name:"Add and compute should equivalent"
     (* Sometimes it fails because it generates two empty strings which have the
        same hash *)
-    QCheck.(list_of_size Gen.(1 -- 256) @@ string_of_size Gen.(1 -- 256))
-    (fun l ->
+    QCheck.(pair (list_of_size Gen.(1 -- 1024) @@ string_of_size Gen.(1 -- 256)) small_int)
+    (fun (l, idx) ->
       QCheck.assume (only_unique_values l);
       QCheck.assume (List.length l > 0);
-      test_add_with_txs l)
+      test_add_with_txs l (idx mod List.length l))
 
 let () =
   let open Alcotest in
