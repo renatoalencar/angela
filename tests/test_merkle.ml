@@ -148,6 +148,7 @@ let test_add_with_txs txs idx =
   computed_root = folded_root
   && MerkleTree.mem item_to_verify computed_tree
   && MerkleTree.mem item_to_verify folded_tree
+  && MerkleTree.for_all (fun n -> not (MerkleTree.is_empty n)) folded_tree
 
 module StringSet = Set.Make(String)
 

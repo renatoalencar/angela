@@ -1,22 +1,28 @@
 type digest = Cstruct.t
 
+type 'a node = { digest: digest
+               ; height: int
+               ; length: int
+               ; left: 'a
+               ; right: 'a }
+
+type 'a duplicate_node =  { digest: digest
+                          ; height: int
+                          ; length: int
+                          ; node: 'a  }
+
 type t = | Empty
          | Leaf of digest
-         | Node of { digest: digest
-                   ; height: int
-                   ; length: int
-                   ; left: t
-                   ; right: t }
-         | DuplicateNode of { digest: digest
-                            ; height: int
-                            ; length: int
-                            ; node: t }
+         | Node of t node
+         | DuplicateNode of t duplicate_node
 
 type path = | Left of (digest * path)
             | Right of (digest * path)
             | Bottom of digest
 
 let empty = Empty
+
+let is_empty = function Empty -> true | _ -> false
 
 let leaf x = Leaf x
 
@@ -52,3 +58,34 @@ let root = function
   | DuplicateNode { digest ; _ }
   | Node { digest; _ } -> Some digest
   | Empty -> None
+
+let digest = function
+  | Node { digest ; _ }
+  | DuplicateNode { digest ; _ }
+  | Leaf digest -> Some digest
+  | Empty -> None
+
+let digest_exn node =
+  match digest node with
+  | Some digest -> digest
+  | None -> raise (Invalid_argument "Merkle.digest")
+
+let rec fold f a t =
+    match t with
+    | Node { left; right; _ } ->
+       let acc = f a t in
+       fold f (fold f acc left) right
+    | DuplicateNode { node ; _ } -> 
+       fold f (f a t) node
+    | el -> f a el
+
+let exists f t =
+  fold (fun acc node -> acc || f node) false t
+
+let for_all f t =
+  fold (fun acc node -> acc && f node) true t
+
+let mem digest t =
+  exists
+    (function Leaf leaf -> digest = leaf | _ -> false)
+    t

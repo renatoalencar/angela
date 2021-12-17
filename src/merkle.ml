@@ -12,29 +12,23 @@ module Make (H: Mirage_crypto.Hash.S) = struct
     | (Some a, None)   -> f_left a
     | (None, Some b)   -> f_right b
     | (None, None)     -> None
-    | (Some _, Some _) -> raise (Invalid_argument "either")
-
-  let node_digest = function
-    | Node { digest ; _ }
-    | DuplicateNode { digest ; _ }
-    | Leaf digest -> digest
-    | Empty -> raise (Invalid_argument "node_digest")
+    | (Some _, Some _) -> assert false
 
   let find_proof t digest =
     let rec find_proof_aux t =
       match t with
-      | Leaf leaf when leaf = digest -> Some (Bottom leaf)
-
+      | Leaf leaf when leaf = digest ->
+         Some (Bottom leaf)
 
       | DuplicateNode { node ; _ } ->
          Option.map
-           (fun path -> Left (node_digest node, path))
+           (fun path -> Left (Tree.digest_exn node, path))
            (find_proof_aux node)
 
       | Node { left ; right ; _ } ->
         either ~left:(find_proof_aux left) ~right:(find_proof_aux right)
-          (fun path -> Some (Right (node_digest right, path)))
-          (fun path -> Some (Left (node_digest left, path))) 
+          (fun path -> Some (Right (Tree.digest_exn right, path)))
+          (fun path -> Some (Left (Tree.digest_exn left, path))) 
 
       | Leaf _ | Empty -> None
     in
@@ -90,13 +84,13 @@ module Make (H: Mirage_crypto.Hash.S) = struct
   let rec make_duplicate_branch height leaf =
     if height > 1 then
       let node = make_duplicate_branch (height - 1) leaf in
-      let digest = node_digest node in
+      let digest = Tree.digest_exn node in
       Tree.duplicate_node (hash_pair digest digest) node
     else
       Tree.duplicate_node (hash_pair leaf leaf) (Tree.leaf leaf)
 
   let make_node t digest node =
-    let digest' = node_digest node in
+    let digest' = Tree.digest_exn node in
     Tree.node
       (hash_pair digest digest')
       t node
@@ -114,28 +108,17 @@ module Make (H: Mirage_crypto.Hash.S) = struct
 
     | Node { left ; right ; _ } ->
        make_node left
-         (node_digest left)
+         (Tree.digest_exn left)
          (add right leaf)
-
-    | DuplicateNode { node = Leaf digest as node ; _ } ->
-       Tree.node
-         (hash_pair digest leaf)
-         node (Tree.leaf leaf)
 
     | DuplicateNode { node; _ } when is_full_node node ->
        add node leaf
 
     | DuplicateNode { node; _ } ->
        let node = add node leaf in
-       let digest = node_digest node in
+       let digest = Tree.digest_exn node in
 
        Tree.duplicate_node (hash_pair digest digest) node
 
-  let rec mem digest t =
-    match t with
-    | Empty -> false
-    | Leaf leaf -> leaf = digest
-    | Node { left; right; _ } -> mem digest left || mem digest right
-    | DuplicateNode { node; _ } -> mem digest node
 end
 
