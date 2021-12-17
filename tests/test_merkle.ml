@@ -33,9 +33,9 @@ let test_with_txs ~root txs =
     (List.length proofs) (List.length txs);
   Alcotest.(check bool) "Should verify the merkle path"
     (List.for_all (MerkleTree.verify_path root) proofs) true;
-  Alcotest.(check int) "Should have the right length"
+  Alcotest.(check int) "Should have the correct length"
     (List.length txs) (MerkleTree.length tree);
-  Alcotest.(check int) "Should have the right height"
+  Alcotest.(check int) "Should have the correct height"
     (log2 (List.length txs)) (MerkleTree.height tree)
 
 let test_tree_with_power_of_2_tx_count () =
@@ -79,48 +79,55 @@ let test_tree_with_odd_tx_count () =
     ; "ada57acbca80bcb7c13ca16419d3c11ed3b96391ed4c428dd6df0ff9ffadb8f0" ]
 
 let test_add_with_empty () =
-  let digest = (Cstruct.of_hex "cce45eb5db95ace6ff1adde485f3315dc6cb1a5fdb700045cd45eab5075bb542") in
+  let digest = Cstruct.of_hex "cce45eb5db95ace6ff1adde485f3315dc6cb1a5fdb700045cd45eab5075bb542" in
   let tree = MerkleTree.add MerkleTree.empty digest in
   let root = Option.get @@ MerkleTree.root tree in
 
-  Alcotest.(check string) "Should have the same digest"
+  Alcotest.(check string) "Should have the correct root"
     (Cstruct.to_string digest) (Cstruct.to_string root)
 
 let test_add_with_leaf () =
-  let digest = (Cstruct.of_hex "cce45eb5db95ace6ff1adde485f3315dc6cb1a5fdb700045cd45eab5075bb542") in
-  let leaf = (Cstruct.of_hex "0727c505cd8ef35bc0c7cb1533f30938a810ab09fd62d4acc3fe24633e3a2890") in
+  let digest = Cstruct.of_hex "cce45eb5db95ace6ff1adde485f3315dc6cb1a5fdb700045cd45eab5075bb542" in
+  let leaf = Cstruct.of_hex "0727c505cd8ef35bc0c7cb1533f30938a810ab09fd62d4acc3fe24633e3a2890" in
   let tree = MerkleTree.add (MerkleTree.leaf leaf) digest in
   let root = Option.get @@ MerkleTree.root tree in
 
   let expected_root = Cstruct.of_hex "996c1d54f4dc1384a4f76ffc5e1e5ad836a08b18e15491d2a18f533c96361643" in
 
-  Alcotest.(check string) "Should have right root"
+  Alcotest.(check string) "Should have correct root"
     (Cstruct.to_string expected_root) (Cstruct.to_string root)
 
 let test_with_height_2_node () =
-  let txs = [ Cstruct.of_hex "0727c505cd8ef35bc0c7cb1533f30938a810ab09fd62d4acc3fe24633e3a2890"
-            ; Cstruct.of_hex "cce45eb5db95ace6ff1adde485f3315dc6cb1a5fdb700045cd45eab5075bb542" ] in
+  let txs =
+    List.map Cstruct.of_hex
+      [ "0727c505cd8ef35bc0c7cb1533f30938a810ab09fd62d4acc3fe24633e3a2890"
+      ; "cce45eb5db95ace6ff1adde485f3315dc6cb1a5fdb700045cd45eab5075bb542" ]
+  in
   let tree = MerkleTree.compute txs in
   let tree = MerkleTree.add tree (Cstruct.of_hex "8f355d90eec8252f1ba06df7ca45a82553398efcac93692961e2109b4f57ace8") in
   let root = Option.get @@ MerkleTree.root tree in
 
   let expected_root = Cstruct.of_hex "082370901631ec96525c04e3ecf985cecefe5b34788db9d36b00870a2ad6ed4b" in
 
-  Alcotest.(check string) "Should have the right root"
+  Alcotest.(check string) "Should have the correct root"
     (Cstruct.to_string expected_root) (Cstruct.to_string root)
 
 let test_with_a_duplicate_node () =
-  let txs = [ Cstruct.of_hex "0727c505cd8ef35bc0c7cb1533f30938a810ab09fd62d4acc3fe24633e3a2890"
-            ; Cstruct.of_hex "cce45eb5db95ace6ff1adde485f3315dc6cb1a5fdb700045cd45eab5075bb542" 
-            ; Cstruct.of_hex "8f355d90eec8252f1ba06df7ca45a82553398efcac93692961e2109b4f57ace8" ] in
+  let txs =
+    List.map Cstruct.of_hex
+      [ "0727c505cd8ef35bc0c7cb1533f30938a810ab09fd62d4acc3fe24633e3a2890"
+      ; "cce45eb5db95ace6ff1adde485f3315dc6cb1a5fdb700045cd45eab5075bb542" 
+      ;  "8f355d90eec8252f1ba06df7ca45a82553398efcac93692961e2109b4f57ace8" ]
+  in
+  let item_to_add = Cstruct.of_hex "082370901631ec96525c04e3ecf985cecefe5b34788db9d36b00870a2ad6ed4b" in
   let tree = MerkleTree.compute txs in
 
-  let tree = MerkleTree.add tree (Cstruct.of_hex "082370901631ec96525c04e3ecf985cecefe5b34788db9d36b00870a2ad6ed4b") in
+  let tree = MerkleTree.add tree item_to_add in
   let root = Option.get @@ MerkleTree.root tree in
 
   let expected_root = Cstruct.of_hex "5c7cae1836aa614ef9251cc9132384e1f6bc000a197bff6e9678f3a8f8a5ea7e" in
 
-  Alcotest.(check string) "Should have the right root"
+  Alcotest.(check string) "Should have the correct root"
     (Cstruct.to_string expected_root) (Cstruct.to_string root)
 
 let test_with_txs txs =
@@ -140,8 +147,8 @@ let test_add_with_txs txs idx =
 
   let computed_tree = MerkleTree.compute txs in
   let folded_tree = List.fold_left MerkleTree.add MerkleTree.empty txs in
-  let computed_root = Option.map Cstruct.to_string @@ MerkleTree.root computed_tree in
-  let folded_root = Option.map Cstruct.to_string @@ MerkleTree.root folded_tree in
+  let computed_root = MerkleTree.root computed_tree in
+  let folded_root = MerkleTree.root folded_tree in
 
   let item_to_verify = List.nth txs idx in
 
@@ -156,9 +163,7 @@ let only_unique_values l =
   StringSet.(cardinal (of_list l)) = List.length l
 
 let test_generative count =
-  QCheck.Test.make ~count ~name:"Random digest lists"
-    (* Sometimes it fails because it generates two empty strings which have the
-       same hash *)
+  QCheck.Test.make ~count ~name:"Should generate all Merkle paths and assert topology properties"
     QCheck.(list_of_size Gen.(1 -- 256) @@ string_of_size Gen.(1 -- 256))
     (fun l ->
       QCheck.assume (only_unique_values l);
@@ -166,9 +171,7 @@ let test_generative count =
       test_with_txs l)
 
 let test_add_generative count =
-  QCheck.Test.make ~count ~name:"Add and compute should equivalent"
-    (* Sometimes it fails because it generates two empty strings which have the
-       same hash *)
+  QCheck.Test.make ~count ~name:"Add and compute should be equivalent"
     QCheck.(pair (list_of_size Gen.(1 -- 1024) @@ string_of_size Gen.(1 -- 256)) small_int)
     (fun (l, idx) ->
       QCheck.assume (only_unique_values l);
@@ -192,7 +195,7 @@ let () =
                           `Quick test_tree_with_power_of_2_tx_count
                       ; test_case "Test with 2^3 - 2 (should have 1 duplication)"
                           `Quick test_tree_with_even_tx_count
-                      ; test_case "Test with 2^4 + 1 (should have several duplications)"
+                      ; test_case "Test with 2^4 + 1 (should have several duplicates)"
                           `Quick test_tree_with_odd_tx_count ]
 
     ; "Adding", [ test_case "Empty + Leaf"
