@@ -114,13 +114,9 @@ let test_with_a_duplicate_node () =
             ; Cstruct.of_hex "cce45eb5db95ace6ff1adde485f3315dc6cb1a5fdb700045cd45eab5075bb542" 
             ; Cstruct.of_hex "8f355d90eec8252f1ba06df7ca45a82553398efcac93692961e2109b4f57ace8" ] in
   let tree = MerkleTree.compute txs in
-  MerkleTree.Print.pp_tree tree;
-
 
   let tree = MerkleTree.add tree (Cstruct.of_hex "082370901631ec96525c04e3ecf985cecefe5b34788db9d36b00870a2ad6ed4b") in
   let root = Option.get @@ MerkleTree.root tree in
-
-  MerkleTree.Print.pp_tree tree;
 
   let expected_root = Cstruct.of_hex "5c7cae1836aa614ef9251cc9132384e1f6bc000a197bff6e9678f3a8f8a5ea7e" in
 
