@@ -82,10 +82,9 @@ val root : MerkleTree.digest option =
 
 ### Computing from a fold
 
-```
+```ocaml
 # let val tree : MerkleTree.t = MerkleTree.Node <abstr>
 val tree = List.fold_left MerkleTree.add MerkleTree.empty txs ;;
-
 ```
 
 ### Finding a Merkle path for a particular hash
