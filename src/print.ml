@@ -5,7 +5,7 @@ open Format
 let pp_digest fmt digest =
   let digest = Cstruct.to_string digest in
   String.iter
-    (fun c -> fprintf fmt "%x" (Char.code c))
+    (fun c -> fprintf fmt "%0x" (Char.code c))
     digest
 
 let pp_path ?fmt path =
@@ -48,7 +48,7 @@ let rec pp_print_tree ?indent fmt node =
 
   let indent = Option.value ~default:0 indent in
   match node with
-  | Node (digest, left, right) ->
+  | Node { digest ; left ; right ; _ } ->
      pp_node fmt "Node digest" digest;
 
      pp_open_vbox fmt (indent + 2);
@@ -59,6 +59,19 @@ let rec pp_print_tree ?indent fmt node =
      pp_print_break fmt 2 0;
 
      pp_branch fmt indent "Right node" right;
+
+     pp_close_box fmt ()
+  | DuplicateNode { digest; node ; _ } ->
+     pp_node fmt "DuplicateNode digest" digest;
+
+     pp_open_vbox fmt (indent + 2);
+
+     pp_print_break fmt 2 0;
+
+     pp_branch fmt indent "Left node" node;
+     pp_print_break fmt 2 0;
+
+     pp_branch fmt indent "Right node" node;
 
      pp_close_box fmt ()
   | Leaf digest ->

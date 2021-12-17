@@ -4,7 +4,15 @@ module Tree : sig
 
   type t = | Empty
            | Leaf of digest
-           | Node of (digest * t * t)
+           | Node of { digest: digest
+                     ; height: int
+                     ; length: int
+                     ; left: t
+                     ; right: t }
+           | DuplicateNode of { digest: digest
+                              ; height: int
+                              ; length: int
+                              ; node: t }
 
   type path = | Left of (digest * path)
               | Right of (digest * path)
@@ -30,9 +38,15 @@ module Make (H: Mirage_crypto.Hash.S) : sig
 
   val root : t -> Tree.digest option
 
+  val height : t -> int
+
+  val length : t -> int
+
   val find_proof : t -> Tree.digest -> Tree.path option
 
   val verify_path : Tree.digest -> Tree.path -> bool
 
   val compute : Tree.digest list -> t
+
+  val add : t -> Tree.digest -> t
 end
