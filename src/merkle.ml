@@ -43,7 +43,7 @@ module Make (H: Mirage_crypto.Hash.S) = struct
     in
     root = (hash_path path)
 
-  let compute leafs =
+  let compute leaves =
     let rec step nodes =
       match nodes with
       | [] -> []
@@ -73,7 +73,7 @@ module Make (H: Mirage_crypto.Hash.S) = struct
       | [root] -> root
       | nodes -> loop (step nodes)
     in
-    loop (List.map leaf leafs)
+    loop (List.map leaf leaves)
 
   let is_full_node node =
     match node with
